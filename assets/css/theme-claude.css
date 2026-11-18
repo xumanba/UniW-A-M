@@ -21,7 +21,7 @@
   --btn-bg: #fffefa; --btn-bg-hover: #f3f1ea; --btn-text: #1f1e1d; --btn-border: #d6d2c4;
 
   --head-weight: 500; --sub-weight: 400; --h2-size: 50px; --h3-weight: 500; --head-tracking: -0.02em;
-  --head-align: left; --head-max: 780px; --head-margin-x: 0; --hl-style: italic;
+  --head-align: center; --head-max: 780px; --head-margin-x: auto; --hl-style: italic;
   --eyebrow: #c96442; --eyebrow-tracking: .08em; --eyebrow-case: uppercase; --cap-align: left;
 
   --stats-bg: #f0eee6; --stats-border: #dedbd0; --stat-align: left; --stat-num: #1f1e1d; --stat-unit: #c96442;
