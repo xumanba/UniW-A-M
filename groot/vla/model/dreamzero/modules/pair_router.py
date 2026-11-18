@@ -368,7 +368,6 @@ class PAIRFeatureEncoder:
             ("_current_wam_expert_mask", expert_mask),
             ("_current_wam_task", None),
             ("_current_wam_token_group_routing", None),
-            ("_current_wam_router_extra", None),
             ("_wam_moe_routing_granularity", "sample_level"),
         ):
             saved[name] = getattr(dit, name, missing)

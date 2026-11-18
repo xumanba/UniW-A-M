@@ -351,21 +351,17 @@ class WAMControlMoE(nn.Module):
         self,
         hidden_states: torch.Tensor,
         wam_expert_mask: Optional[torch.Tensor] = None,
-        router_extra: Optional[torch.Tensor] = None,
         token_group_routing: Optional[Dict[str, Any]] = None,
         sample_level_routing: Optional[Dict[str, Any]] = None,
         routing_override: Optional[torch.Tensor] = None,
     ):
         if token_group_routing is not None:
             return self._forward_token_groups(
-                hidden_states, wam_expert_mask, router_extra, token_group_routing
+                hidden_states, wam_expert_mask, token_group_routing
             )
 
         batch_size = hidden_states.size(0)
         allowed_mask = self._build_allowed_expert_mask(batch_size, hidden_states, wam_expert_mask)
-
-        if router_extra is not None:
-            raise NotImplementedError("router_extra is not supported by the UniW(A)M MoE router.")
 
         if routing_override is not None:
             routing_weights = routing_override.to(
@@ -573,7 +569,6 @@ class WAMControlMoE(nn.Module):
         self,
         hidden_states: torch.Tensor,
         wam_expert_mask: Optional[torch.Tensor],
-        router_extra: Optional[torch.Tensor],
         spec: Dict[str, Any],
     ):
         """Token-group-level MoE for masked single-horizon or Joint layouts.
@@ -582,8 +577,6 @@ class WAMControlMoE(nn.Module):
         are both group-local, so dropping ``Vfut`` at action-only inference is
         exact for F/A/S0 rather than an approximation of a sample-level mixture.
         """
-        if router_extra is not None:
-            raise NotImplementedError("router_extra is not supported by FastWAM token-group routing")
         task = str(spec.get("task", ""))
         if str(spec.get("stage", "")).startswith("masked_cache_"):
             return self._forward_masked_cache_token_groups(
@@ -1366,7 +1359,6 @@ class WAMMoEWrapper(nn.Module):
     def forward(self, hidden_states: torch.Tensor):
         transformer = self.transformer_model[0]
         wam_expert_mask = getattr(transformer, "_current_wam_expert_mask", None)
-        router_extra = getattr(transformer, "_current_wam_router_extra", None)
         current_spec = getattr(
             transformer, "_current_wam_token_group_routing", None
         )
@@ -1404,7 +1396,6 @@ class WAMMoEWrapper(nn.Module):
         moe_out, routing_weights = self.control_moe(
             hidden_states,
             wam_expert_mask=wam_expert_mask,
-            router_extra=router_extra,
             token_group_routing=token_group_routing,
             sample_level_routing=sample_level_routing,
             routing_override=routing_override,
