@@ -635,8 +635,8 @@ class WANPolicyHeadConfig(PretrainedConfig):
     image_encoder_cfg: dict = field(default=None)
     vae_cfg: dict = field(default=None)
     # UniW(A)M MoE: replace each transformer block's dense FFN with a router + 5 experts
-    # (shared, vgm, vla, wm, idm). See groot/vla/model/dreamzero/modules/wam_moe.py
-    # and docs/architecture.md. When None or {"enabled": false}, the model stays dense.
+    # (shared, vgm, vla, wm, idm). See groot/vla/model/dreamzero/modules/wam_moe.py.
+    # When None or {"enabled": false}, the model stays dense.
     moe: dict = field(default=None)
 
     def __init__(self, **kwargs):

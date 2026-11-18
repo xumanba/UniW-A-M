@@ -858,7 +858,6 @@ class WanModel(ModelMixin, ConfigMixin):
                 return module(*inputs, **kwargs)
             return custom_forward
 
-        # TODO: Tune the number of blocks for feature extraction
         final_x = None
         if classify_mode:
             assert register_tokens is not None

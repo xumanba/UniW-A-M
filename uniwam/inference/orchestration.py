@@ -301,8 +301,7 @@ def write_eval_manifest(
         "max_chunks": max_chunks,
         "_limits_note": (
             "ac_wm_max_windows caps AC-WM replan windows; joint_max_chunks caps "
-            "joint DreamZero chunks. Both derive from MAX_CHUNKS (0 = full episode). "
-            "max_chunks is a deprecated alias kept for older readers."
+            "joint DreamZero chunks. Both derive from MAX_CHUNKS (0 = full episode)."
         ),
         "world_size": world_size,
     }

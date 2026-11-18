@@ -103,8 +103,8 @@ action_head_cfg:
 
     # ========== UniW(A)M MoE CONFIG ==========
     # Default OFF here so the base config keeps the original dense-FFN behavior.
-    # Enable it in wan_flow_matching_action_tf_wan22_moe.yaml. See docs/architecture.md.
-    # routing_mode: global_task (one task per run) | per_sample (TODO)
+    # Enable it in wan_flow_matching_action_tf_wan22_moe.yaml.
+    # routing_mode: global_task (one task per run) | per_sample (training default)
     # task: which WAM task this run belongs to (looks up the shared WAM_TASK_EXPERTS table)
     # target_blocks: "all" (every block's ffn) or an explicit list like [0, 1, 2]
     moe:

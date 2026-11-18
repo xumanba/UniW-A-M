@@ -59,7 +59,7 @@ For results and analyses, see the [paper](https://arxiv.org/abs/2610.18697) and 
 - [x] Real-world Folding Clothes checkpoint
 - [ ] LIBERO checkpoint
 - [ ] RoboTwin 2.0 checkpoint
-- [ ] PAIR training and deployment code
+- [x] PAIR training and deployment code
 
 ## Model Checkpoints
 
@@ -181,7 +181,7 @@ Set the path to a converted trajectory dataset:
 export UNIWAM_DATA=/path/to/prepared_trajectories
 ```
 
-The supplied adapter expects three camera views (`head`, `left_wrist`,
+The included adapter expects three camera views (`head`, `left_wrist`,
 `right_wrist`), 20D bimanual absolute EEF state/actions, language instructions
 and aligned 30 FPS trajectories in LeRobot-style storage:
 
@@ -216,8 +216,8 @@ python -m tools.data.prepare_metadata \
 This tool prepares metadata; it does not convert raw benchmark actions into
 EEF poses or change camera layouts. LIBERO and RoboTwin use the same trainer
 after conversion or a matching data adapter, with no separate training code.
-See [data preparation](docs/data.md) for coordinates, vector ordering, value
-ranges and temporal alignment.
+See the [data format guide](docs/data.md) for coordinates, vector ordering,
+value ranges and temporal alignment.
 
 ## Training
 
@@ -239,9 +239,8 @@ are loaded after the MoE layers are created, and loading stops with an error
 if any of them is missing.
 
 Set `--nproc_per_node` to the number of GPUs used on that node. Even a one-GPU
-launch uses `torchrun --standalone --nproc_per_node=1`. The MoE model has
-substantial memory requirements; the example is a launch template rather than
-a measured minimum hardware configuration.
+launch uses `torchrun --standalone --nproc_per_node=1`. If memory is tight, add
+`gradient_checkpointing=true`.
 
 Training uses all five interfaces with probability 0.2 each. The default
 recipe uses token-group MoE, dense unified training attention, AdamW with
@@ -301,9 +300,9 @@ torchrun --standalone --nproc_per_node=8 train.py \
 ```
 
 With a fresh output directory, this loads model weights and starts a new
-optimizer. Full optimizer/scheduler continuation additionally requires the
-exact saved task-stream state; it is not the same as this command. See
-[training details](docs/training.md) for continuation semantics.
+optimizer. To resume an interrupted run instead, rerun its original command with
+the same `output_dir`. See the [training guide](docs/training.md) for
+initialization options, the full recipe and troubleshooting.
 
 ## Inference
 
@@ -350,25 +349,65 @@ and does not produce executable actions. `WAM_EVAL_STEPS` sets the denoising
 steps; `WAM_EVAL_NUM_SAMPLES` sets the offline batch size.
 
 The entry point evaluates against recorded observations and prints results to
-the terminal. It does not start a robot server or a simulator rollout. See
-[inference details](docs/inference.md) for the shared chunk API, cache lifecycle
-and interface switching.
+the terminal. For closed-loop deployment, see the
+[inference guide](docs/inference.md) for the per-chunk episode API, the KV
+cache and interface switching.
+
+### Adaptive interface routing (PAIR)
+
+PAIR picks an interface for every action chunk with the backbone frozen. It is
+opt-in and leaves the commands above unchanged. Train a router on a complete
+checkpoint (windows, per-interface labels, features, then the router):
+
+```bash
+python -m uniwam.pair.windows --data-root "$UNIWAM_DATA" --output ./outputs/pair/windows.json
+# labels:   torchrun ... -m uniwam.inference.fourway --windows-json ./outputs/pair/windows.json ...
+# features: torchrun ... -m uniwam.pair.features   --windows-json ./outputs/pair/windows.json ...
+python -m uniwam.pair.train --seed 0 \
+  --features ./outputs/pair/features/chunk_features.npz \
+  --labels ./outputs/pair/labels/predictions.json \
+  --out-dir ./outputs/pair/routers
+```
+
+Then route each chunk at deployment:
+
+```python
+from uniwam.pair.gate import PAIRGate
+
+gate = PAIRGate(model, "./outputs/pair/routers")
+task, probs = gate.route(batch, chunk_index)
+```
+
+See [PAIR](docs/pair.md) for the full commands, offline evaluation and
+deployment options.
 
 ## Repository Layout
 
 ```text
 train.py                  Shared backbone training entry
 infer.py                  Five-interface offline inference entry
-requirements.txt          Training and inference dependencies
-configs/unified.yaml      Shared runtime recipe
+configs/unified.yaml      Shared training/inference recipe
 groot/vla/model/          Backbone, MoE, encoders, VAE and routing
 groot/vla/data/           Dataset schemas, loaders and transforms
 groot/vla/experiment/     Trainer and checkpoint utilities
 groot/vla/configs/        Composable model/data configuration
-uniwam/                   Public CLI and inference helpers
+uniwam/                   CLI and inference helpers
+uniwam/pair/              PAIR router training, evaluation and deployment gate
 tools/data/               Dataset metadata preparation
-docs/                     Architecture and detailed usage guides
+docs/                     Data, training, inference and PAIR guides
 ```
+
+Key model files:
+
+| Component | File |
+| --- | --- |
+| MoE experts and CATR routing | `groot/vla/model/dreamzero/modules/wam_moe.py` |
+| Interface attention masks and token groups | `groot/vla/model/dreamzero/modules/wam_task_attn.py` |
+| Shared DiT | `groot/vla/model/dreamzero/modules/wan_video_dit_action_casual_chunk.py` |
+| Flow matching and interface losses | `groot/vla/model/dreamzero/action_head/wan_flow_matching_action_tf.py` |
+| Chunk-wise inference (cache / dense) | `groot/vla/model/dreamzero/action_head/wam_unified_inference.py` |
+| Episode and window lifecycle | `groot/vla/model/dreamzero/wam_episode.py` |
+| PAIR router and features | `groot/vla/model/dreamzero/modules/pair_router.py` |
 
 The `groot` namespace is retained for model imports and checkpoint class paths.
 

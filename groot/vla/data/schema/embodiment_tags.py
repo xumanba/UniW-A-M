@@ -300,48 +300,6 @@ class EmbodimentTag(Enum):
     The sim BEHAVIOR Galaxea R1 Pro robot with grippers.
     """
 
-    # ------------- Deprecated G1 Embodiments -------------
-    # below are deprecated G1 embodiments. Why deprecated?
-    # 1. The neck wasn't locked. So the the camera angles differe slightly between episodes and robots
-    # 2. Video modality was called `rs_view`. It is now called `ego_view`
-    # TODO: In future if we want to unify these embodiment tags, we can do so by renaming
-    # video.rs_view -> video.ego_view. After that we can remove the below deprecated embodiment tags.
-    DEPRECATED_UNITREE_G1_UPPER_BODY = "deprecated_unitree_g1_upper_body"
-    """
-    The Unitree G1 dataset.
-    """
-
-    DEPRECATED_UNITREE_G1_FULL_BODY = "deprecated_unitree_g1_full_body"
-    """
-    The Unitree G1 dataset with full body.
-    """
-
-    DEPRECATED_UNITREE_G1_FULL_BODY_WITH_HEIGHT = "deprecated_unitree_g1_full_body_with_height"
-    """
-    The Unitree G1 dataset with full body and height command.
-    """
-
-    DEPRECATED_UNITREE_G1_FULL_BODY_WITH_HEIGHT_AND_EEF = (
-        "deprecated_unitree_g1_full_body_with_height_and_eef"
-    )
-    """
-    The Unitree G1 dataset with full body and height command and eef command.
-    """
-
-    DEPRECATED_UNITREE_G1_FULL_BODY_WITH_HEIGHT_EEF_NAV_CMD = (
-        "deprecated_unitree_g1_full_body_with_height_eef_nav_cmd"
-    )
-    """
-    The Unitree G1 dataset with full body and height command and eef command and navigate command.
-    """
-
-    DEPRECATED_UNITREE_G1_FULL_BODY_WITH_HEIGHT_NAV_CMD = (
-        "deprecated_unitree_g1_full_body_with_height_nav_cmd"
-    )
-    """
-    The Unitree G1 dataset with full body and height command and navigate command.
-    """
-
     GR1_UNIFIED_512 = "gr1_unified_512"
     """
     The GR1 unified dataset with 512*320 resolution without cropping.

@@ -327,8 +327,6 @@ def get_frames_by_timestamps(
         )
 
         # https://docs.pytorch.org/torchcodec/stable/generated/torchcodec.decoders.VideoStreamMetadata.html#torchcodec.decoders.VideoStreamMetadata
-        # Temporary fix: use 30 fps as the fps of the video (agibot) 
-        # TODO: get fps as parameter
         if fps is None: 
             fps = decoder.metadata.average_fps
         interval = 1 / fps

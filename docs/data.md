@@ -1,84 +1,83 @@
-# Shared trajectory format
+# Data Format
 
-All datasets use the same trainer and inference model. Convert raw data once
-into a common trajectory layout or define a data adapter in
-`groot/vla/configs/data/dreamzero/`. Dataset names do not select separate
-training algorithms.
+All datasets go through the same trainer and model; a dataset only needs to be
+in the trajectory layout below and match a data adapter in
+[`groot/vla/configs/data/dreamzero/`](../groot/vla/configs/data/dreamzero/).
+
+## 1. Directory layout
+
+LeRobot v2 storage with a few additional metadata files:
 
 ```text
 trajectories/
   meta/
-    info.json
-    modality.json
-    embodiment.json
-    stats.json
-    tasks.jsonl
-    episodes.jsonl
+    info.json          # features, FPS and file templates
+    modality.json      # names and vector slices of state/action/video keys
+    embodiment.json    # embodiment tag
+    stats.json         # per-key statistics
+    tasks.jsonl        # task_index -> language instruction
+    episodes.jsonl     # episode_index, length
   data/chunk-000/episode_000000.parquet
   videos/chunk-000/<camera-key>/episode_000000.mp4
 ```
 
-File templates are defined by `meta/info.json`; the included adapter selects
-30 FPS through `fps.agilex_eef` and source video timestamps must agree with it.
-The metadata preparation
-tool reads existing LeRobot v2 parquet/videos and generates the additional
-metadata used by this loader:
+## 2. Included adapter
 
-```bash
-python -m tools.data.prepare_metadata --help
-```
+[`trajectory.yaml`](../groot/vla/configs/data/dreamzero/trajectory.yaml) is the
+default adapter (`agilex_eef` embodiment tag), used for the real-world AgileX
+dual-arm tasks:
 
-It does not convert benchmark-specific observations or coordinate systems.
-Review its options and use `--output-path` to prepare a separate dataset copy.
-The model uses metadata to interpret vector slices; a correct tensor dimension
-alone does not establish a correct action representation.
+| Modality | Keys / layout |
+| --- | --- |
+| Video | `video.head`, `video.left_wrist`, `video.right_wrist`; 30 FPS |
+| State | `left_pos` (3), `left_rot6d` (6), `left_gripper` (1), then the same for the right arm: 20 dims |
+| Action | Same 20-dim layout, absolute target end-effector poses |
+| Language | `annotation.task`, resolved from `meta/tasks.jsonl` |
 
-For an already converted 20D EEF dataset with `observation.state`, `action`,
-`task_index`, a valid existing `meta/tasks.jsonl`, and camera keys ending in
-`head`, `left_wrist`, `right_wrist`, prepare matching metadata explicitly:
+- Rotations use the 6D representation (first two columns of the rotation
+  matrix).
+- State and action values are used as given (tensor conversion and
+  concatenation, no extra normalization) and should lie in `[-1, 1]`; training
+  samples with values outside this range are skipped.
+- Vectors are zero-padded to 64 channels with validity masks inside the model.
+- The three views are tiled into one canvas (head view on the top row, wrist
+  views below) and resized to 320 x 160 per view.
+
+## 3. Preparing metadata
+
+[`tools/data/prepare_metadata.py`](../tools/data/prepare_metadata.py) reads an
+existing LeRobot v2 dataset (parquet + videos) and writes the extra metadata
+into a separate output copy; it does not modify parquet files or videos. For a
+20-dim EEF dataset with `observation.state`, `action`, `task_index` and camera
+keys ending in `head`, `left_wrist` and `right_wrist`:
 
 ```bash
 EEF_KEYS='{"left_pos":[0,3],"left_rot6d":[3,9],"left_gripper":[9,10],"right_pos":[10,13],"right_rot6d":[13,19],"right_gripper":[19,20]}'
+
 python -m tools.data.prepare_metadata \
   --dataset-path /path/to/converted_eef_data \
-  --output-path /path/to/prepared_data \
+  --output-path "$UNIWAM_DATA" \
   --embodiment-tag agilex_eef \
   --state-keys "$EEF_KEYS" --action-keys "$EEF_KEYS" \
   --task-key task_index
 ```
 
-This maps `annotation.task` to the original numeric `task_index` column.
-Existing task metadata supplies the actual language strings; numeric task IDs
-are not language instructions. The tool does not turn joint-space actions
-into EEF poses or change camera layouts.
+`annotation.task` maps to the numeric `task_index` column; the instruction
+strings come from `meta/tasks.jsonl`. Run `python -m tools.data.prepare_metadata
+--help` for all options. The tool writes metadata only: converting joint-space
+actions to end-effector poses or changing camera layouts is done beforehand.
 
-## Included adapter
+## 4. Training windows
 
-`trajectory.yaml` selects the `agilex_eef` schema tag (a format identifier) and
-the existing three-camera, absolute EEF adapter:
+Each training sample is a four-chunk window: 33 video frames, 96 actions
+(4 x 24) and 4 states, with frames sampled at offsets aligned to the action
+steps rather than as 33 consecutive frames. Episodes shorter than one window
+are skipped. Camera timestamps, FPS, action/state timing, gripper convention
+and rotation representation must agree with the adapter.
 
-| Modality | Keys / order |
-| --- | --- |
-| Video | `video.head`, `video.left_wrist`, `video.right_wrist` |
-| State | `left_pos` (3), `left_rot6d` (6), `left_gripper` (1), then the same for the right arm |
-| Action | The same 20-dimensional ordering, absolute target EEF poses |
-| Language | `annotation.task`, resolved from task metadata |
+## 5. Other embodiments and benchmarks
 
-The video keys must be present in `modality.json`; state/action names must map
-to parquet vector slices with those dimensions. The original adapter's
-state/action transform is tensor conversion plus concatenation, without an
-extra normalization transform. The selected training contract checks valid
-state/action values against the unit range; prepare values consistently or
-explicitly adapt this requirement and the transforms to the dataset.
-Model inputs are padded to 64 state/action channels with validity masks.
-
-Training requires complete four-chunk windows (33 sampled video frames,
-96 actions and 4 states); episodes that cannot form them are not valid training
-windows. The loader uses temporally aligned frame offsets, not simply the
-first 33 consecutive video frames. Camera timing, action/state timing, FPS,
-gripper convention and rotation representation must agree with the adapter.
-
-For LIBERO or RoboTwin, convert source observations/actions and metadata to
-this contract, or add a matching data configuration and use
-`data=dreamzero/<adapter>`. The root `train.py` and `infer.py` remain shared.
-No native benchmark conversion or simulator rollout is claimed by this release.
+Convert observations and actions to this layout, or add a data configuration
+with your own modality keys and select it with `data=dreamzero/<adapter>`;
+`train.py` and `infer.py` stay the same. LIBERO and RoboTwin 2.0 conversion and
+evaluation scripts will be released together with their checkpoints.

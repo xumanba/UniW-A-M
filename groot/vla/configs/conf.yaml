@@ -22,9 +22,9 @@ trainer:
   train_dataset: ???                          # train_dataset
   compute_dtype: ???                          # dtype_from_string(model.config.model_dtype)
   benchmark_time: false                       # whether or not to benchmark time for training
-  # Legacy per-step profiling (profiles every N steps)
-  enable_profiling: false                     # (legacy) enable per-step profiling in training_step
-  profiling_steps: 5                          # (legacy) profile every N steps
+  # Per-step profiling (profiles every N steps)
+  enable_profiling: false                     # enable per-step profiling in training_step
+  profiling_steps: 5                          # profile every N steps
   # ProfCallback: window-based profiling
   enable_prof_callback: false                 # enable ProfCallback for window-based profiling
   profile_start_step: 50                      # session step to start profiling

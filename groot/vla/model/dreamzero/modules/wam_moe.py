@@ -365,10 +365,7 @@ class WAMControlMoE(nn.Module):
         allowed_mask = self._build_allowed_expert_mask(batch_size, hidden_states, wam_expert_mask)
 
         if router_extra is not None:
-            # TODO: Once the learnable task query is defined, decide whether to
-            # project+add or concatenate+MLP before the router. For now this is
-            # an explicit placeholder and keeps the current router contract.
-            raise NotImplementedError("router_extra / learnable query routing is reserved for a later UniW(A)M MoE step.")
+            raise NotImplementedError("router_extra is not supported by the UniW(A)M MoE router.")
 
         if routing_override is not None:
             routing_weights = routing_override.to(

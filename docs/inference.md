@@ -1,56 +1,101 @@
-# Shared inference
+# Inference Guide
 
-`infer.py` loads the same model for all five interfaces. It samples an offline
-trajectory window, predicts actions/video and reports tensor dimensions and
-action MSE over valid, unpadded channels where applicable. This is offline evaluation against recorded
-observations; it does not execute commands in a simulator or on a robot.
+One UniW(A)M checkpoint serves all five interfaces. This guide covers offline
+evaluation with `infer.py`, the per-chunk episode API used for deployment, and
+how to switch interfaces. For adaptive per-chunk interface selection, see
+[PAIR](pair.md).
+
+## 1. Checkpoint
+
+A complete checkpoint contains `config.json`, `model.safetensors` (or
+`model.safetensors.index.json` with all shards) and `experiment_cfg/`. It
+includes the DiT, text/image encoders and VAE; only the umT5 tokenizer is passed
+separately (`tokenizer_path`).
+
+Checkpoints written by this code store `experiment_cfg/effective_config.json`,
+which is validated against the launch configuration. The released
+[`folding_clothes`](https://huggingface.co/xumanba/UniWAM/tree/main/folding_clothes)
+checkpoint was saved without it; set `ALLOW_LEGACY_EFFECTIVE_CONFIG=1` when
+loading it.
+
+## 2. Offline evaluation
 
 ```bash
+CUDA_VISIBLE_DEVICES=0 ALLOW_LEGACY_EFFECTIVE_CONFIG=1 \
 WAM_EVAL_NUM_SAMPLES=1 WAM_EVAL_STEPS=16 \
 python infer.py --task joint_dreamzero \
-  dataset_root=/path/to/trajectories \
-  pretrained_model_path=/path/to/your/checkpoint
+  pretrained_model_path=./checkpoints/UniWAM/folding_clothes \
+  tokenizer_path="$UNIWAM_ASSETS/google/umt5-xxl" \
+  dataset_root="$UNIWAM_DATA"
 ```
 
-The pretrained model must be a compatible complete UniW(A)M checkpoint with
-all components, configuration and, by default, `effective_config.json`.
-For a known compatible older checkpoint without that metadata, explicitly set
-`ALLOW_LEGACY_EFFECTIVE_CONFIG=1`; the implementation still validates available
-routing settings. No trained policy checkpoint is bundled in this repository.
+`infer.py` samples trajectory windows from `dataset_root`, predicts all four
+chunks of each window with recorded observations as history, and prints the
+action MSE over the valid (unpadded) action channels (`ac_wm` prints the shape
+of the generated video latents instead). Random crop and color augmentation are
+disabled.
 
-The public entry point disables random crop/color augmentation and sets the
-dataset mixture to evaluation mode. For the action-only interfaces, metrics
-cover the complete predicted four-chunk window. Joint predictions also include
-video internally, but the compact offline entry point reports action metrics;
-AC-WM reports generated latent dimensions.
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `WAM_EVAL_NUM_SAMPLES` | 4 | Windows evaluated (offline batch size) |
+| `WAM_EVAL_STEPS` | 16 | Denoising steps |
+| `WAM_CFG_SCALE` | 5 (1 for `ac_wm`) | Classifier-free guidance scale |
+| `WAM_EVAL_BF16` | 1 | Run the model in BF16 |
 
-## Episode API
+## 3. Interfaces
 
-`WAMEpisodeRunner` owns reset and window boundaries. At the beginning of a
-window, supply one observed RGB seed frame. For subsequent chunks, supply
-nine observation frames aligned to the previous executed 24-step action chunk
-(offsets `0,3,...,24`), plus the current state and language. A window has four
-chunks, each of 24 actions. Offline action inference supplies recorded history;
-online integrations must supply actual observations after execution.
+| Interface | `--task` | Inputs per chunk | Output |
+| --- | --- | --- | --- |
+| Joint-WAM | `joint_dreamzero` | Observations, state, instruction | Actions and future video, jointly |
+| IDM-WAM | `idm_lingbot_va` | Observations, state, instruction | Future video, then actions |
+| Action-Centric-WAM | `action_only_fast_wam` | Observations, state, instruction | Actions |
+| Action-Only-WAM | `action_only_gigaworld_policy` | Observations, state, instruction | Actions |
+| AC-WM | `ac_wm` | Observations and given actions | Future video |
+
+AC-WM is an action-conditioned world model: it predicts video for supplied
+actions and does not output executable actions.
+
+## 4. Episode API
+
+For closed-loop use, drive the model one action chunk at a time.
+`WAMEpisodeRunner` ([`wam_episode.py`](../groot/vla/model/dreamzero/wam_episode.py))
+owns the window lifecycle; requests are built with
+`uniwam.inference.episode.BatchBuilder`.
+
+A window has four chunks of 24 actions.
+
+- **Chunk 0**: one RGB seed frame (the three views tiled into one canvas), the
+  current state and the instruction.
+- **Chunks 1-3**: the nine frames observed while the previous chunk was
+  executed (action offsets `0, 3, ..., 24`), the current state and the
+  instruction.
+
+After chunk 3 the next request starts a new window with a seed frame. Online
+integrations must pass the frames actually observed after execution.
 
 | Interface | Model call |
 | --- | --- |
-| Joint | `model.lazy_joint_video_action_causal` (cache) or `head.wam_joint_dense_episode_step` (dense) |
-| IDM | `model.wam_idm_episode_step` / cached episode API |
-| Action-Centric / Action-Only | `model.wam_masked_get_action` |
-| AC-WM | `model.wam_acwm_episode_step` with supplied clean actions |
+| Joint-WAM | `model.lazy_joint_video_action_causal` |
+| IDM-WAM | `model.wam_idm_episode_step` |
+| Action-Centric-WAM / Action-Only-WAM | `model.wam_masked_get_action` |
+| AC-WM | `model.wam_acwm_episode_step` (with the actions to condition on) |
 
-The task-specific helper calls share the same model, checkpoint and lifecycle
-contract. `uniwam/inference/open_loop.py` provides the four-chunk offline
-dispatch; `episode.py` contains longer episode evaluation and tensor adapters.
-The default unified backend is cache; set
-`WAM_UNIFIED_INFERENCE_BACKEND=dense` for the dense compatibility path.
+By default the history of a window is kept in a KV cache across its chunks.
+Set `WAM_UNIFIED_INFERENCE_BACKEND=dense` to recompute the full context every
+chunk instead.
 
-Default denoising uses 16 steps. Joint uses guidance 5; IDM uses guidance 5 for
-video and no action guidance; the action-only interfaces use guidance 1.
-AC-WM receives actions as conditions and does not produce executable actions.
+## 5. Switching interfaces
 
-When switching interfaces, reset the old runtime cache and start the new
-interface from the latest observation. Do not transfer KV caches between
-interfaces. The root command evaluates the fixed interface selected by `--task`
-for the entire window.
+All interfaces share one set of weights, so switching needs no reload. When
+switching, call `model.wam_episode_reset(<new task>)` and start the new
+interface at chunk 0 from the latest observation; KV caches are never carried
+across interfaces. [PAIR](pair.md) automates this choice for every chunk.
+
+## 6. Troubleshooting
+
+| Message / symptom | Cause | Fix |
+| --- | --- | --- |
+| `effective_config.json` missing or mismatched | Checkpoint saved without it (e.g. the released `folding_clothes`) | `ALLOW_LEGACY_EFFECTIVE_CONFIG=1` |
+| `No complete model weights under ...` | Checkpoint folder lacks weights or shards | Download the whole checkpoint folder |
+| `Missing tokenizer directory` | `tokenizer_path` is wrong | Point it at `Wan2.2-TI2V-5B/google/umt5-xxl` |
+| Large action error on your own data | State/action layout differs from training | Check the vector order and coordinates in [Data](data.md) |

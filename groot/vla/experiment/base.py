@@ -36,7 +36,6 @@ from torch.utils.data import DataLoader, Dataset, Sampler
 import transformers
 from transformers import TrainerCallback, set_seed
 from transformers.trainer import (
-    # ALL_LAYERNORM_LAYERS,  # ShardedDDPOption,  # Removed deprecated import
     TRAINER_STATE_NAME,
     TrainerState,
     get_last_checkpoint,
@@ -74,7 +73,7 @@ allowlist = [np_core.multiarray._reconstruct, np.ndarray, np.dtype]
 allowlist += [type(np.dtype(np.uint32))]
 torch.serialization.add_safe_globals(allowlist)
 
-# Define LayerNorm classes locally to replace deprecated ALL_LAYERNORM_LAYERS
+# LayerNorm classes excluded from weight decay
 LAYERNORM_LAYERS = [
     torch.nn.LayerNorm,
     torch.nn.GroupNorm,
@@ -758,7 +757,7 @@ class BaseTrainer(transformers.Trainer):
         self.current_step = 0
         self._wam_benchmark_current = None
 
-        # Profiling (legacy per-step profiling)
+        # Per-step profiling
         self.enable_profiling = kwargs.pop("enable_profiling", False)
         self.profiling_steps = kwargs.pop("profiling_steps", 5)
         # Pop new ProfCallback config options (handled in create_trainer, not here)

@@ -1,4 +1,3 @@
-# Deprecated
 METADATA_FILENAME = "metadata.json"
 DATA_FILENAME = "dataset.hdf5"
 FULL_SET_NAME = "FullSet"

@@ -123,47 +123,6 @@ def make_recursive_func(fn, *, with_path=False):
 
 
 @meta_decorator
-def deprecated(func, msg="", action="warning", type=""):
-    """
-    Function/class decorator: designate deprecation.
-
-    Args:
-      msg: string message.
-      action: string mode
-      - 'warning': (default) prints `msg` to stderr
-      - 'noop': do nothing, just for source code annotation purposes
-      - 'raise': raise DeprecatedError(`msg`)
-    """
-    action = action.lower()
-    type = type.lower()
-    ALL_ACTIONS = ["warn", "warning", "noop", "raise"]
-    if action not in ALL_ACTIONS:
-        raise ValueError(f"Unknown action {action}. Choose from {ALL_ACTIONS}.")
-    ALL_TYPES = {
-        "": DeprecationWarning,
-        "pending": PendingDeprecationWarning,
-        "future": FutureWarning,
-    }
-    if type not in ALL_TYPES:
-        raise ValueError(f"Unknown type {type}. Choose from {ALL_TYPES.keys()}.")
-    if not msg:
-        msg = "This is a deprecated feature."
-
-    WarningExceptionCls = ALL_TYPES[type]
-
-    # only does the deprecation when being called
-    @functools.wraps(func)
-    def _deprecated(*args, **kwargs):
-        if action in ["warning", "warn"]:
-            warnings.warn(msg, WarningExceptionCls)
-        elif action == "raise":
-            raise WarningExceptionCls(msg)
-        return func(*args, **kwargs)
-
-    return _deprecated
-
-
-@meta_decorator
 def call_once(func, on_second_call: Literal["noop", "raise", "warn"] = "noop"):
     """
     Decorator to ensure that a function is only called once.

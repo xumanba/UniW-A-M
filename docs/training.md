@@ -1,79 +1,99 @@
-# Unified backbone training
+# Training Guide
 
-Run all commands from the source checkout root after editable installation.
-`configs/unified.yaml` composes the shared model/data/trainer configuration.
-All `key=value` arguments use Hydra override syntax. `--dry-run` only composes
-configuration and loads neither the model nor the dataset.
+This guide covers the options behind the [Training](../README.md#training)
+quick start: how the model is initialized, what the default recipe is, how to
+launch on one or several nodes, and what a run writes to disk.
 
-## Initialization assets
+All commands run from the checkout root. Arguments of the form `key=value` are
+Hydra overrides of [`configs/unified.yaml`](../configs/unified.yaml);
+`python train.py --dry-run [overrides]` prints the composed configuration
+without loading data or weights.
 
-For fresh training, `assets_root` contains a dense Wan2.2-TI2V-5B DiT and:
+## 1. Initialization
 
-```text
-diffusion_pytorch_model.safetensors.index.json  # or a supported single file
-diffusion_pytorch_model-*.safetensors           # if sharded
-Wan2.2_VAE.pth
-models_t5_umt5-xxl-enc-bf16.pth
-models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth
-google/umt5-xxl/                               # tokenizer files
-```
+| Start from | Overrides | Notes |
+| --- | --- | --- |
+| Released UniW(A)M initialization (recommended) | `assets_root=$UNIWAM_ASSETS dit_version=./checkpoints/UniWAM/pretrained` | Every FFN is already stored as five experts plus a zero-initialized router; the expert tensors are loaded right after the MoE layers are created, and loading fails if any are missing. |
+| Dense Wan2.2-TI2V-5B | `assets_root=$UNIWAM_ASSETS` | Each dense FFN is copied into the five experts when the model is built; routers start at zero. |
+| A complete UniW(A)M checkpoint | `pretrained_model_path=/path/to/checkpoint tokenizer_path=$UNIWAM_ASSETS/google/umt5-xxl` | Loads all components (DiT, encoders, VAE) from the checkpoint and starts a fresh optimizer. |
 
-The CLIP component is inherited from the upstream DreamZero/Wan image encoder
-path; obtain it from the upstream
-[Wan2.1-I2V-14B-480P assets](https://huggingface.co/Wan-AI/Wan2.1-I2V-14B-480P)
-if it is not in the 5B download. `dit_version`, `tokenizer_path` and the three
-`*_pretrained_path` fields can point to separate local locations. No weights
-are downloaded as part of the release checks.
+Action and state adapters are newly initialized in the first two cases. The VAE,
+text encoder and CLIP image encoder always come from `assets_root` unless
+`vae_pretrained_path`, `text_encoder_pretrained_path` and
+`image_encoder_pretrained_path` are set individually (see
+[Model Assets](../README.md#model-assets)).
 
-The dense DiT initializes all MoE FFN experts; action/state adapters are newly
-initialized. This route makes fresh training possible without distributing
-the source experiment's private initializer. It does not recreate that
-initializer's previous training history.
+## 2. Default recipe
 
-## Recipe and distributed launch
+| Setting | Value | Override key |
+| --- | --- | --- |
+| Interfaces | Joint, IDM, Action-Centric, Action-Only, AC-WM, 0.2 each | `wam_task_ratios` |
+| MoE routing | Token-group routing (CATR) | `action_head_cfg.config.moe.routing_granularity` |
+| Window | 33 frames, 4 chunks of 24 actions, 4 states | `num_frames`, `action_horizon`, `max_chunk_size` |
+| Resolution | 320 x 160 per view, three views | `image_resolution_width`, `image_resolution_height` |
+| Action-loss weight (action-only interfaces) | 5.0 | `action_only_action_loss_weight` |
+| Optimizer | AdamW, LR `1e-5`, weight decay `1e-5` | `learning_rate`, `weight_decay` |
+| Schedule | 1,000 warmup steps, then constant | `training_args.warmup_steps`, `lr_scheduler_type` |
+| Batch | 3 per GPU, 192 global | `per_device_train_batch_size`, `global_batch_size` |
+| Length | 100,000 steps, checkpoint every 5,000 | `max_steps`, `save_steps` |
+| Precision / sharding | BF16, DeepSpeed ZeRO-2 with overlap | `bf16`, `training_args.deepspeed` |
 
-The selected code version uses five equally sampled interfaces, 33 frames /
-96 actions / 4 states, online VAE encoding, token-group MoE and dense unified
-training attention. Optimization uses AdamW, LR `1e-5`, weight decay `1e-5`,
-effective batch 192 and a 1,000-step warmup followed by a constant LR, for
-100,000 steps. This explicitly preserves the supplied version's warmup;
-the paper's optimization table describes the backbone schedule as constant.
+Joint-WAM and IDM-WAM are trained with video and action losses; the two
+action-only interfaces keep the video loss and weight the action loss by 5;
+AC-WM uses the video loss only.
+
+## 3. Launching
+
+Single node:
 
 ```bash
 torchrun --standalone --nproc_per_node=8 train.py \
-  assets_root=/path/to/assets dataset_root=/path/to/trajectories \
+  assets_root="$UNIWAM_ASSETS" dataset_root="$UNIWAM_DATA" \
+  dit_version=./checkpoints/UniWAM/pretrained \
   output_dir=./outputs/uniwam
 ```
 
-The example does not assert that eight GPUs meet the memory requirement.
-Choose a topology appropriate to your hardware. Multi-node training uses
-standard `torchrun --nnodes --node_rank --master_addr --master_port` options.
-There is no provider-specific launcher.
+Several nodes use the standard `torchrun --nnodes --node_rank --master_addr
+--master_port` options with the same command on every node; see the README for
+a two-node example. All nodes must see the same assets, dataset and output
+directory.
 
-`global_batch_size` must be divisible by total training processes times
-`per_device_train_batch_size`. The entry point computes gradient accumulation
-from these values. The default DeepSpeed configuration is ZeRO-2 overlap.
-Use a relative or absolute path in `training_args.deepspeed` to supply your own
-DeepSpeed config. Activation checkpointing is controlled by
-`gradient_checkpointing=true` if needed for the local memory budget.
+Gradient accumulation is derived from the launch:
+`global_batch_size / (WORLD_SIZE * per_device_train_batch_size)` must be a
+positive integer, so the global batch stays 192 regardless of how many GPUs are
+used. Use `training_args.deepspeed=/path/to/config.json` to supply another
+DeepSpeed configuration, and `gradient_checkpointing=true` to reduce activation
+memory.
 
-## Weights and continuation
+## 4. Outputs
 
-`pretrained_model_path=/path/to/complete/checkpoint` loads all model components
-from a compatible model checkpoint and starts a fresh optimizer in a fresh
-output directory. A complete checkpoint contains `config.json` and either
-`model.safetensors` or `model.safetensors.index.json` with all referenced shards.
-The tokenizer remains a separate asset.
+```text
+outputs/uniwam/
+  checkpoint-5000/
+    config.json
+    model.safetensors.index.json, model-*.safetensors
+    experiment_cfg/            # metadata.json (normalization), effective_config.json
+    ...                        # optimizer, scheduler and RNG states
+  ...
+```
 
-Full continuation uses the existing trainer's saved model/optimizer/scheduler
-and RNG state from an existing `output_dir`. Task-aware data continuation also
-needs the exact acknowledged task micro-batch ordinal, exposed by the original
-continuation utilities in `groot/vla/experiment/continuation.py`; it is not
-equivalent to starting a new weights-only run. Exact full continuation has not
-been validated as part of source cleanup. Use a fresh output directory for
-an independent run.
+Each `checkpoint-N/` is a complete model checkpoint that can be passed to
+`infer.py` or to a new run as `pretrained_model_path`. Experiment tracking is
+off by default; set `report_to=wandb wandb_project=<name>` to enable it.
 
-Checkpoint files remain local under `output_dir`; cloud upload callbacks and
-provider credential readers were excluded. Checkpoints written by users are
-ignored by Git and must stay out of the source release. Experiment tracking is
-disabled by default (`report_to=none`).
+## 5. Resuming
+
+Rerunning the same command with the same `output_dir` resumes from the latest
+`checkpoint-N/`, restoring the model, optimizer, scheduler and RNG states.
+Passing `pretrained_model_path` instead starts a new run from the weights only;
+use a new `output_dir` for it.
+
+## 6. Troubleshooting
+
+| Message / symptom | Cause | Fix |
+| --- | --- | --- |
+| `global_batch_size must be a positive multiple of ...` | Batch sizes do not divide across processes | Adjust `global_batch_size` or `per_device_train_batch_size` |
+| `Missing dataset metadata: .../meta/...` | Dataset is not in the expected layout | Prepare it as described in [Data](data.md) |
+| `Missing DiT directory` / `Missing *_pretrained_path` | Asset paths do not match | Check `assets_root`, `dit_version` and the individual asset paths |
+| `pre-expanded MoE weights do not match the model` | `dit_version` points at an incompatible MoE checkpoint | Use the released `pretrained/` folder or a dense Wan2.2 DiT |
+| CUDA out of memory | Activations exceed GPU memory | `gradient_checkpointing=true`, or lower `per_device_train_batch_size` (the global batch is kept by accumulation) |
