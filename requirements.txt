@@ -1,0 +1,39 @@
+# Install the matching CUDA PyTorch wheels first; see README.md.
+torch==2.8.0
+torchvision==0.23.0
+
+# Model and training runtime
+transformers==4.51.3
+diffusers==0.30.2
+peft==0.5.0
+accelerate>=1.0,<2
+deepspeed==0.19.8
+ninja
+hydra-core==1.3.2
+omegaconf==2.3.0
+safetensors>=0.4
+huggingface-hub[cli]>=0.34,<1
+pydantic>=2,<3
+PyYAML>=6
+einops==0.8.1
+timm
+ftfy
+regex
+sentencepiece
+tiktoken
+dm_tree
+
+# Dataset, image and video processing
+numpy==1.26.4
+scipy==1.15.3
+av==15.0.0
+decord2
+opencv-python-headless==4.10.0.84
+albumentations==1.4.18
+imageio==2.34.2
+imageio-ffmpeg
+pandas
+pyarrow
+h5py
+matplotlib
+tqdm

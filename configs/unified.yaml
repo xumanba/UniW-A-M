@@ -1,0 +1,65 @@
+# Shared model, data and optimization recipe for all datasets and interfaces.
+defaults:
+  - conf
+  - override data: dreamzero/trajectory
+  - override model/dreamzero/action_head: wan_flow_matching_action_tf_wan22_moe
+  - _self_
+
+assets_root: ${oc.env:UNIWAM_ASSETS,./assets/Wan2.2-TI2V-5B}
+dataset_root: ${oc.env:UNIWAM_DATA,./data/trajectories}
+dit_version: ${assets_root}
+text_encoder_pretrained_path: ${assets_root}/models_t5_umt5-xxl-enc-bf16.pth
+image_encoder_pretrained_path: ${assets_root}/models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth
+vae_pretrained_path: ${assets_root}/Wan2.2_VAE.pth
+tokenizer_path: ${assets_root}/google/umt5-xxl
+pretrained_model_path: null
+
+num_frames: 33
+action_horizon: 24
+num_views: 3
+num_frame_per_block: 2
+num_action_per_block: 24
+num_state_per_block: 1
+max_chunk_size: 4
+image_resolution_width: 320
+image_resolution_height: 160
+max_state_dim: 64
+max_action_dim: 64
+train_architecture: full
+action_only_action_loss_weight: 5.0
+wam_task: null
+wam_task_ratios:
+  joint_dreamzero: 0.2
+  ac_wm: 0.2
+  action_only_fast_wam: 0.2
+  action_only_gigaworld_policy: 0.2
+  idm_lingbot_va: 0.2
+
+output_dir: ./outputs/uniwam
+wandb_project: uniwam
+report_to: none
+seed: 42
+bf16: true
+tf32: true
+eval_bf16: true
+gradient_checkpointing: false
+per_device_train_batch_size: 3
+global_batch_size: 192
+dataloader_num_workers: 2
+learning_rate: 1.0e-5
+weight_decay: 1.0e-5
+max_steps: 100000
+save_steps: 5000
+save_total_limit: 5
+lr_scheduler_type: constant_with_warmup
+warmup_ratio: 0.0
+training_args:
+  warmup_steps: 1000
+  save_only_model: false
+  ddp_timeout: 7200
+  deepspeed: ${oc.env:UNIWAM_DEEPSPEED,groot/vla/configs/deepspeed/zero2_overlap.json}
+
+action_head_cfg:
+  config:
+    moe:
+      routing_granularity: token_group_level

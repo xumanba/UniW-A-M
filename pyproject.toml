@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=67", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uniwam"
+version = "0.1.0"
+description = "A unified mixture-of-experts framework for world and world-action models"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = {file = "LICENSE"}
+dynamic = ["dependencies"]
+
+[project.optional-dependencies]
+tracking = ["wandb"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["groot*", "uniwam*", "tools*"]
+
+[tool.setuptools.package-data]
+"groot.vla" = ["configs/**/*.yaml", "configs/**/*.json"]

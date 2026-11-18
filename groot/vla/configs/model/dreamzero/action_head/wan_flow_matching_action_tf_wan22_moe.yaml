@@ -1,0 +1,33 @@
+# @package _global_
+# Wan2.2-TI2V-5B backbone + UniW(A)M MoE (5 experts: shared/vgm/vla/wm/idm), full fine-tune.
+# Inherits the Wan2.2-5B DiT/VAE overrides from wan_flow_matching_action_tf_wan22,
+# then turns on MoE and forces full-parameter training (no LoRA).
+# Select with: model/dreamzero/action_head=wan_flow_matching_action_tf_wan22_moe
+# See docs/architecture.md for the full description of the MoE integration.
+
+defaults:
+  - wan_flow_matching_action_tf_wan22
+
+# Full-parameter training (no LoRA). Also passed on the CLI by the launcher.
+train_architecture: full
+
+# Canonical WAM IDM slot: current proprio state -> 2 latent frames -> 24 actions.
+num_frame_per_block: 2
+num_action_per_block: 24
+num_state_per_block: 1
+
+action_head_cfg:
+  config:
+    train_architecture: full
+    tune_projector: true
+    tune_diffusion_model: true
+    moe:
+      enabled: true
+      experts: [shared, vgm, vla, wm, idm]
+      route_temperature: 1.0
+      # MoE 1.0 compatibility default. Set WAM_MOE_GRANULARITY=token_group_level
+      # (or override this field) to enable the retained MoE 2.0 implementation.
+      routing_granularity: sample_level
+      routing_mode: global_task
+      task: joint_dreamzero
+      target_blocks: all
