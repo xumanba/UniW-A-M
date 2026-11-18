@@ -14,7 +14,7 @@ separately (`tokenizer_path`).
 
 Checkpoints written by this code store `experiment_cfg/effective_config.json`,
 which is validated against the launch configuration. The released
-[`folding_clothes`](https://huggingface.co/xumanba/UniWAM/tree/main/folding_clothes)
+[`folding_clothes`](https://huggingface.co/xumanba/UniW-A-M/tree/main/folding_clothes)
 checkpoint was saved without it; set `ALLOW_LEGACY_EFFECTIVE_CONFIG=1` when
 loading it.
 
@@ -24,7 +24,7 @@ loading it.
 CUDA_VISIBLE_DEVICES=0 ALLOW_LEGACY_EFFECTIVE_CONFIG=1 \
 WAM_EVAL_NUM_SAMPLES=1 WAM_EVAL_STEPS=16 \
 python infer.py --task joint_dreamzero \
-  pretrained_model_path=./checkpoints/UniWAM/folding_clothes \
+  pretrained_model_path=./checkpoints/UniW-A-M/folding_clothes \
   tokenizer_path="$UNIWAM_ASSETS/google/umt5-xxl" \
   dataset_root="$UNIWAM_DATA"
 ```

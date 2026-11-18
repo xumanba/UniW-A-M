@@ -13,7 +13,7 @@ without loading data or weights.
 
 | Start from | Overrides | Notes |
 | --- | --- | --- |
-| Released UniW(A)M initialization (recommended) | `assets_root=$UNIWAM_ASSETS dit_version=./checkpoints/UniWAM/pretrained` | Every FFN is already stored as five experts plus a zero-initialized router; the expert tensors are loaded right after the MoE layers are created, and loading fails if any are missing. |
+| Released UniW(A)M initialization (recommended) | `assets_root=$UNIWAM_ASSETS dit_version=./checkpoints/UniW-A-M/pretrained` | Every FFN is already stored as five experts plus a zero-initialized router; the expert tensors are loaded right after the MoE layers are created, and loading fails if any are missing. |
 | Dense Wan2.2-TI2V-5B | `assets_root=$UNIWAM_ASSETS` | Each dense FFN is copied into the five experts when the model is built; routers start at zero. |
 | A complete UniW(A)M checkpoint | `pretrained_model_path=/path/to/checkpoint tokenizer_path=$UNIWAM_ASSETS/google/umt5-xxl` | Loads all components (DiT, encoders, VAE) from the checkpoint and starts a fresh optimizer. |
 
@@ -49,7 +49,7 @@ Single node:
 ```bash
 torchrun --standalone --nproc_per_node=8 train.py \
   assets_root="$UNIWAM_ASSETS" dataset_root="$UNIWAM_DATA" \
-  dit_version=./checkpoints/UniWAM/pretrained \
+  dit_version=./checkpoints/UniW-A-M/pretrained \
   output_dir=./outputs/uniwam
 ```
 

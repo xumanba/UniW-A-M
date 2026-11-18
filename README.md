@@ -14,7 +14,7 @@ Jingbo Xu<sup>1*</sup>, Jianjie Fang<sup>1*</sup>, Zhuohang Li<sup>1</sup>, Ziha
 
 [![Project Page](https://img.shields.io/badge/Project-Page-c96442?style=for-the-badge)](https://xumanba.github.io/UniW-A-M/)
 [![arXiv](https://img.shields.io/badge/arXiv-2610.18697-b31b1b?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/2610.18697)
-[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Weights-ffcc4d?style=for-the-badge)](https://huggingface.co/xumanba/UniWAM)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Weights-ffcc4d?style=for-the-badge)](https://huggingface.co/xumanba/UniW-A-M)
 [![License](https://img.shields.io/badge/License-Apache%202.0-3d3d3a?style=for-the-badge)](LICENSE)
 
 <a href="https://xumanba.github.io/UniW-A-M/"><img src="docs/media/teaser.webp" width="92%" alt="UniW(A)M demo: real-world folding clothes, folding box, tabletop cleaning and RoboTwin 2.0"></a>
@@ -65,13 +65,13 @@ For results and analyses, see the [paper](https://arxiv.org/abs/2610.18697) and 
 
 | Model | Description | Download |
 | --- | --- | --- |
-| UniW(A)M initialization | DiT with each FFN copied into five experts and a zero-initialized router; the starting point for training | [`pretrained/`](https://huggingface.co/xumanba/UniWAM/tree/main/pretrained) |
-| UniW(A)M Folding Clothes | Complete checkpoint for the real-world Folding Clothes task (AgileX dual-arm) | [`folding_clothes/`](https://huggingface.co/xumanba/UniWAM/tree/main/folding_clothes) |
+| UniW(A)M initialization | DiT with each FFN copied into five experts and a zero-initialized router; the starting point for training | [`pretrained/`](https://huggingface.co/xumanba/UniW-A-M/tree/main/pretrained) |
+| UniW(A)M Folding Clothes | Complete checkpoint for the real-world Folding Clothes task (AgileX dual-arm) | [`folding_clothes/`](https://huggingface.co/xumanba/UniW-A-M/tree/main/folding_clothes) |
 
 ```bash
 mkdir -p checkpoints
-hf download xumanba/UniWAM --include "pretrained/*" --local-dir ./checkpoints/UniWAM
-hf download xumanba/UniWAM --include "folding_clothes/*" --local-dir ./checkpoints/UniWAM
+hf download xumanba/UniW-A-M --include "pretrained/*" --local-dir ./checkpoints/UniW-A-M
+hf download xumanba/UniW-A-M --include "folding_clothes/*" --local-dir ./checkpoints/UniW-A-M
 ```
 
 ## Installation
@@ -234,7 +234,7 @@ torchrun --standalone --nproc_per_node=8 train.py \
 ```
 
 To initialize from the released UniW(A)M weights, add
-`dit_version=./checkpoints/UniWAM/pretrained`. The expert and router weights
+`dit_version=./checkpoints/UniW-A-M/pretrained`. The expert and router weights
 are loaded after the MoE layers are created, and loading stops with an error
 if any of them is missing.
 
@@ -328,7 +328,7 @@ which is checked against the launch configuration. The released
 ```bash
 CUDA_VISIBLE_DEVICES=0 ALLOW_LEGACY_EFFECTIVE_CONFIG=1 WAM_EVAL_NUM_SAMPLES=1 WAM_EVAL_STEPS=16 \
 python infer.py --task idm_lingbot_va \
-  pretrained_model_path=./checkpoints/UniWAM/folding_clothes \
+  pretrained_model_path=./checkpoints/UniW-A-M/folding_clothes \
   tokenizer_path="$UNIWAM_ASSETS/google/umt5-xxl" \
   dataset_root="$UNIWAM_DATA"
 ```
