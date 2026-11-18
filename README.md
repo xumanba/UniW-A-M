@@ -17,75 +17,64 @@ Jingbo Xu<sup>1*</sup>, Jianjie Fang<sup>1*</sup>, Zhuohang Li<sup>1</sup>, Ziha
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Weights-ffcc4d?style=for-the-badge)](https://huggingface.co/xumanba/UniWAM)
 [![License](https://img.shields.io/badge/License-Apache%202.0-3d3d3a?style=for-the-badge)](LICENSE)
 
-<a href="https://xumanba.github.io/UniW-A-M/"><img src="docs/media/teaser.gif" width="88%" alt="UniW(A)M demo: real-world folding clothes, folding box, tabletop cleaning and RoboTwin 2.0"></a>
+<a href="https://xumanba.github.io/UniW-A-M/"><img src="docs/media/teaser.webp" width="92%" alt="UniW(A)M demo: real-world folding clothes, folding box, tabletop cleaning and RoboTwin 2.0"></a>
 
 <sub>Real-world and simulation episodes. Full videos and interactive results are on the <a href="https://xumanba.github.io/UniW-A-M/">project page</a>.</sub>
 
 </div>
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Updates](#updates)
+- [Model Checkpoints](#model-checkpoints)
+- [Installation](#installation)
+- [Model Assets](#model-assets)
+- [Data Preparation](#data-preparation)
+- [Training](#training)
+- [Inference](#inference)
+- [Repository Layout](#repository-layout)
+- [Citation](#citation)
+
 ## Overview
 
-World models predict how a scene evolves; world-action models generate the actions that change it. Both learn from the same embodied trajectories, yet they are usually trained in isolation. **UniW(A)M** trains them together in a single mixture-of-experts diffusion Transformer built on Wan2.2-TI2V-5B:
+**UniW(A)M** is a mixture-of-experts world-(action) model built on the Wan2.2-TI2V-5B diffusion Transformer. One backbone serves five video–action interfaces: action-conditioned world modeling (**AC-WM**) and four world-action-model interfaces (**Joint-WAM**, **IDM-WAM**, **Action-Centric-WAM** and **Action-Only-WAM**).
 
-- **One backbone, five video–action interfaces.** Action-conditioned world modeling (AC-WM) and four world-action-model interfaces (Joint-WAM, IDM-WAM, Action-Centric-WAM and Action-Only-WAM) share one model.
-- **Shared and atomic experts.** A shared expert models common dynamics. Four atomic experts (VGM, VLA, WM and IDM) each own one predictive role and are reused by every interface that needs it.
-- **Capability-Aligned Token Routing (CATR).** Video and action tokens are routed to their own eligible experts, with learned mixture weights inside each set.
-- **Plug-in Adaptive Interface Router (PAIR).** A lightweight router picks the interface for every action chunk at deployment, with the backbone frozen.
+- **Shared and atomic experts**: a shared expert captures common dynamics, and four atomic experts (VGM, VLA, WM, IDM) are reused by every interface that needs them.
+- **Capability-Aligned Token Routing (CATR)**: video and action tokens are routed to their own eligible experts.
+- **Plug-in Adaptive Interface Router (PAIR)**: picks an interface for each action chunk at deployment, with the backbone frozen.
 
 <p align="center"><img src="docs/media/overview.png" width="95%" alt="UniW(A)M overview"></p>
 
-<p align="center"><img src="docs/media/framework.png" width="95%" alt="UniW(A)M framework"></p>
+For results and analyses, see the [paper](https://arxiv.org/abs/2610.18697) and the [project page](https://xumanba.github.io/UniW-A-M/).
 
-## Results
+## Updates
 
-**Real world.** Three dual-arm tasks on an AgileX platform, 20 trials each (success rate, %).
+- **[2026-11]** Released the training and inference code, the UniW(A)M initialization weights, and the real-world Folding Clothes checkpoint.
 
-| Method | Folding Clothes | Folding Box | Tabletop Cleaning | Average |
-| --- | :---: | :---: | :---: | :---: |
-| π0.5 | 60 | 65 | 70 | 65.0 |
-| DreamZero | 45 | 55 | 60 | 53.3 |
-| WorldScape Policy 2.0 | 75 | 75 | 80 | 76.7 |
-| **UniW(A)M** Joint-WAM | 90 | 80 | 90 | 86.7 |
-| **UniW(A)M** IDM-WAM | 90 | 85 | 90 | **88.3** |
-| **UniW(A)M** Action-Centric-WAM | 85 | 75 | 85 | 81.7 |
-| **UniW(A)M** Action-Only-WAM | 85 | 70 | 85 | 80.0 |
+### Open-Source Roadmap
 
-With supervised target-domain adaptation and the backbone frozen, **PAIR** raises out-of-distribution success from 63.3% to **76.7%**.
+- [x] Training and inference code for all five interfaces
+- [x] UniW(A)M initialization weights
+- [x] Real-world Folding Clothes checkpoint
+- [ ] LIBERO checkpoint
+- [ ] RoboTwin 2.0 checkpoint
+- [ ] PAIR training and deployment code
 
-**Simulation.**
+## Model Checkpoints
 
-| LIBERO | Spatial | Object | Goal | Long | Average |
-| --- | :---: | :---: | :---: | :---: | :---: |
-| π0.5 | 98.8 | 98.2 | 98.0 | 92.4 | 96.9 |
-| Fast-WAM | 98.2 | 100.0 | 97.0 | 95.2 | 97.6 |
-| **UniW(A)M** | **99.2** | 99.0 | 96.6 | 95.2 | 97.5 |
-
-| RoboTwin 2.0 | Clean → Clean | Clean → Randomized |
-| --- | :---: | :---: |
-| π0.5 | 70.7 | 46.0 |
-| WorldScape Policy 2.0 | 84.9 | 38.5 |
-| **UniW(A)M** | 84.4 | **66.6** |
-
-**World modeling.** On WorldArena, UniW(A)M leads action-conditioned world modeling on all three real-world tasks.
-
-<p align="center"><img src="docs/media/real_world_folding_clothes.jpg" width="85%" alt="Folding Clothes rollouts from the four WAM interfaces"></p>
-<p align="center"><sub>Folding Clothes rollouts from the four world-action-model interfaces. More tasks, videos and analyses are on the <a href="https://xumanba.github.io/UniW-A-M/">project page</a>.</sub></p>
-
-## Model weights
-
-Weights are on [Hugging Face](https://huggingface.co/xumanba/UniWAM) under Apache-2.0.
-
-| Folder | Content | Use |
+| Model | Description | Download |
 | --- | --- | --- |
-| [`pretrained/`](https://huggingface.co/xumanba/UniWAM/tree/main/pretrained) | UniW(A)M initialization: the DiT with each FFN copied into five experts and a zero-initialized router | Initialize training on new tasks |
-| [`folding_clothes/`](https://huggingface.co/xumanba/UniWAM/tree/main/folding_clothes) | Complete real-world Folding Clothes checkpoint (AgileX dual-arm) | Inference and fine-tuning |
+| UniW(A)M initialization | DiT with each FFN copied into five experts and a zero-initialized router; the starting point for training | [`pretrained/`](https://huggingface.co/xumanba/UniWAM/tree/main/pretrained) |
+| UniW(A)M Folding Clothes | Complete checkpoint for the real-world Folding Clothes task (AgileX dual-arm) | [`folding_clothes/`](https://huggingface.co/xumanba/UniWAM/tree/main/folding_clothes) |
 
 ```bash
+mkdir -p checkpoints
 hf download xumanba/UniWAM --include "pretrained/*" --local-dir ./checkpoints/UniWAM
 hf download xumanba/UniWAM --include "folding_clothes/*" --local-dir ./checkpoints/UniWAM
 ```
 
-## 1. Set up the environment
+## Installation
 
 Use Linux, Python 3.11, an NVIDIA GPU environment with BF16 support, and an
 NVIDIA driver compatible with the chosen PyTorch CUDA build. The example below
@@ -148,7 +137,7 @@ The dry runs compose configuration without loading data or model weights.
 They are useful before a launch; CUDA availability and dependency compatibility
 are checked separately by the preceding commands.
 
-## 2. Prepare model assets
+## Model Assets
 
 Download the [Wan2.2-TI2V-5B](https://huggingface.co/Wan-AI/Wan2.2-TI2V-5B)
 backbone, text encoder, VAE and tokenizer. The image encoder comes from the
@@ -179,12 +168,12 @@ Wan2.2-TI2V-5B/
 By default the DiT is initialized from the dense Wan2.2 weights in this
 directory, and each FFN is copied into the five experts when the model is
 built. To start from the released UniW(A)M initialization instead, point
-`dit_version` at the downloaded `pretrained/` folder (see [Train](#4-train)).
+`dit_version` at the downloaded `pretrained/` folder (see [Training](#training)).
 You can also set `dit_version`, `text_encoder_pretrained_path`,
 `image_encoder_pretrained_path`, `vae_pretrained_path` and `tokenizer_path`
 individually if your assets are stored separately.
 
-## 3. Prepare a dataset
+## Data Preparation
 
 Set the path to a converted trajectory dataset:
 
@@ -230,7 +219,7 @@ after conversion or a matching data adapter, with no separate training code.
 See [data preparation](docs/data.md) for coordinates, vector ordering, value
 ranges and temporal alignment.
 
-## 4. Train
+## Training
 
 ### Fresh training on one node
 
@@ -316,7 +305,7 @@ optimizer. Full optimizer/scheduler continuation additionally requires the
 exact saved task-stream state; it is not the same as this command. See
 [training details](docs/training.md) for continuation semantics.
 
-## 5. Run inference
+## Inference
 
 Use a complete UniW(A)M checkpoint containing `config.json` and model weights
 (single file or index plus all shards). The checkpoint supplies the model
@@ -334,8 +323,16 @@ python infer.py --task action_only_gigaworld_policy \
 
 Checkpoints written by this code also contain `experiment_cfg/effective_config.json`,
 which is checked against the launch configuration. The released
-`folding_clothes/` checkpoint predates that file, so add
-`ALLOW_LEGACY_EFFECTIVE_CONFIG=1` in front of the command when using it.
+`folding_clothes/` checkpoint predates that file, so set
+`ALLOW_LEGACY_EFFECTIVE_CONFIG=1` when using it:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 ALLOW_LEGACY_EFFECTIVE_CONFIG=1 WAM_EVAL_NUM_SAMPLES=1 WAM_EVAL_STEPS=16 \
+python infer.py --task idm_lingbot_va \
+  pretrained_model_path=./checkpoints/UniWAM/folding_clothes \
+  tokenizer_path="$UNIWAM_ASSETS/google/umt5-xxl" \
+  dataset_root="$UNIWAM_DATA"
+```
 
 Change only `--task` to select another interface using the same model:
 
@@ -357,7 +354,7 @@ the terminal. It does not start a robot server or a simulator rollout. See
 [inference details](docs/inference.md) for the shared chunk API, cache lifecycle
 and interface switching.
 
-## Repository layout
+## Repository Layout
 
 ```text
 train.py                  Shared backbone training entry
