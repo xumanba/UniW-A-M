@@ -65,7 +65,9 @@
       ctx.restore();
     }
   };
-  Chart.register(valueLabels, pointLabels);
+  // Charts are optional: if Chart.js fails to load, videos and the rest of the page still work.
+  const HAS_CHART = typeof Chart !== "undefined";
+  if (HAS_CHART) Chart.register(valueLabels, pointLabels);
 
   function applyDefaults() {
     Chart.defaults.font.family = css("--font-body");
@@ -352,7 +354,7 @@
       hv.addEventListener("volumechange", sync);
     }
     buildLibero(); buildEWM(); buildAdapt(); buildDense(); buildVideos();
-    drawAll();
+    if (HAS_CHART) drawAll();
 
     // copy bibtex
     $("#copy-bib").onclick = () => navigator.clipboard.writeText($("#bib-text").textContent).then(() => { $("#copy-bib").textContent = "Copied"; setTimeout(() => ($("#copy-bib").textContent = "Copy"), 1500); });
