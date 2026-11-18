@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en" data-style="claude">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UniW(A)M · Unified World and World-Action Models</title>
+<meta name="description" content="UniW(A)M: a unified mixture-of-experts framework for world and world-action models. One diffusion Transformer, five video–action interfaces, and a plug-in adaptive interface router.">
+<meta property="og:title" content="UniW(A)M: A Unified Mixture-of-Experts Framework for World and World-Action Models">
+<meta property="og:image" content="assets/videos/teaser.jpg">
+<link rel="icon" href="assets/img/cube.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" id="theme-css" href="assets/css/theme-claude.css">
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#top"><img src="assets/img/cube.png" alt="">UniW(A)M</a>
+    <nav class="nav-links">
+      <a href="#overview">Overview</a>
+      <a href="#method">Method</a>
+      <a href="#real-world">Real World</a>
+      <a href="#simulation">Simulation</a>
+      <a href="#world-model">World Model</a>
+      <a href="#pair">PAIR</a>
+      <a href="#analysis">Analysis</a>
+      <a href="#bibtex">BibTeX</a>
+    </nav>
+    <a class="nav-cta" href="https://arxiv.org/abs/2610.18697" target="_blank" rel="noopener">arXiv</a>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap hero-inner">
+    <img class="hero-mark" src="assets/img/cube.png" alt="UniW(A)M logo">
+    <h1 class="hero-title">UniW(A)M</h1>
+    <p class="hero-sub">A Unified Mixture-of-Experts Framework for World and World-Action Models</p>
+    <p class="authors">
+      <span>Jingbo Xu<sup>1*</sup></span>, <span>Jianjie Fang<sup>1*</sup></span>, <span>Zhuohang Li<sup>1</sup></span>, <span>Zihao Song<sup>1</sup></span>, <span>Zhaolu Wang<sup>2</sup></span>, <span>Xvyuan Liu<sup>3</sup></span>, <span>Xin Zhang<sup>4</sup></span>, <span>Haisheng Su<sup>4</sup></span>, <span>Yinzhou Tang<sup>1</sup></span>, <span>Chen Gao<sup>1,2&dagger;</sup></span>, <span>Wei Wu<sup>4&dagger;</sup></span>, <span>Yong Li<sup>1&dagger;</sup></span>
+    </p>
+    <p class="affils"><span><sup>1</sup>Tsinghua University</span><span><sup>2</sup>Zhongguancun Academy</span><span><sup>3</sup>East China Normal University</span><span><sup>4</sup>Manifold AI</span></p>
+    <p class="notes"><span><sup>*</sup>Joint first authors.</span><span><sup>&dagger;</sup>Corresponding authors.</span></p>
+    <div class="hero-abstract">
+      <p>World models (WMs) and world-action models (WAMs) focus on future world prediction and executable action generation, respectively. Although these models learn shared physical dynamics and interaction semantics from embodied trajectories, they are typically trained in isolation, which limits the reuse of knowledge between prediction and control. The central challenge is therefore to develop a unified learning framework that shares these dynamics while preserving the distinct modeling capabilities required by each paradigm. We propose <b>UniW(A)M</b>, a <b>mixture-of-experts world-(action) model</b> built upon diffusion Transformers that unifies action-conditioned world modeling and diverse WAM variants. <b>Shared experts</b> capture common dynamics, while <b>atomic capability experts</b> are reused across interfaces so that each interface keeps its own conditional pathway. A <b>plug-in adaptive interface router (PAIR)</b> learns chunk-level interface selection through lightweight supervised target-domain adaptation, keeping the backbone frozen. We evaluate UniW(A)M on LIBERO, RoboTwin 2.0, and three real-world manipulation tasks, where it achieves <b>88.3% average real-world success</b> versus 76.7% for the strongest baseline. On WorldArena, it <b>leads action-conditioned world modeling on all three tasks</b>. AC-WM co-training contributes to action generation on every action interface, and with supervised target-domain adaptation, PAIR raises OOD success from 63.3% to <b>76.7%</b>.</p>
+    </div>
+    <div class="hero-links">
+      <a class="pbtn" href="#demo"><svg viewBox="0 0 24 24" class="fill"><path d="M7 4.5v15l12.5-7.5z"/></svg>Watch Demo</a>
+      <a class="pbtn" href="https://arxiv.org/abs/2610.18697" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M5 3.5l14 17M19 3.5L12.6 11.3M10.6 13.7L5 20.5"/><path d="M8.5 3.5l3 3.6" opacity=".55"/></svg>arXiv</a>
+      <a class="pbtn" href="https://github.com/xumanba/UniW-A-M" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" class="fill"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>Code</a>
+      <a class="pbtn" href="https://huggingface.co/xumanba/UniWAM" target="_blank" rel="noopener"><span class="emoji" aria-hidden="true">🤗</span>Model</a>
+      <a class="pbtn" href="#videos"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.2v5.6l4.6-2.8z" class="fillp"/></svg>Videos</a>
+    </div>
+  </div>
+  <div class="wrap-wide" id="demo">
+    <div class="hero-video">
+      <video src="assets/videos/teaser.mp4" poster="assets/videos/teaser.jpg" controls autoplay muted loop playsinline preload="auto"></video>
+      <button class="sound-on" type="button" aria-label="Turn sound on"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" class="fillp"/><path d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11"/></svg>Sound on</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ KEY NUMBERS ============ -->
+<section class="stats-band">
+  <div class="wrap stats">
+    <div class="stat"><div class="stat-num" data-count="88.3">88.3<span>%</span></div><div class="stat-label">Real-world average success<br><em>vs 76.7% strongest baseline</em></div></div>
+    <div class="stat"><div class="stat-num" data-count="97.5">97.5<span>%</span></div><div class="stat-label">LIBERO average success<br><em>99.2% on Spatial</em></div></div>
+    <div class="stat"><div class="stat-num" data-count="66.6">66.6<span>%</span></div><div class="stat-label">RoboTwin 2.0 clean → randomized<br><em>+20.6 pts over π0.5</em></div></div>
+    <div class="stat"><div class="stat-num" data-count="76.7">76.7<span>%</span></div><div class="stat-label">OOD success with PAIR<br><em>up from 63.3%, backbone frozen</em></div></div>
+    <div class="stat"><div class="stat-num">3<span>/3</span></div><div class="stat-label">WorldArena tasks led<br><em>action-conditioned prediction</em></div></div>
+  </div>
+</section>
+
+<!-- ============ OVERVIEW ============ -->
+<section id="overview" class="section">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Overview</div>
+      <h2>One model that predicts the world <span class="hl">and</span> acts in it.</h2>
+      <p class="lead">World models predict how a scene evolves; world-action models generate actions to change it. Both learn from the same embodied trajectories, yet they are usually trained apart. UniW(A)M trains them together in a single mixture-of-experts diffusion Transformer, so the two supervision signals shape one shared representation of the dynamics.</p>
+    </div>
+    <figure class="figure figure-lg">
+      <img src="assets/fig/overview.svg" alt="Overview of UniW(A)M" loading="lazy">
+      <figcaption><b>Overview.</b> UniW(A)M unifies action-conditioned world modeling (AC-WM) and four world-action-model interfaces over a shared embodied context. AC-WM predicts future video, while execution adaptively switches among the four WAM interfaces chunk by chunk.</figcaption>
+    </figure>
+    <div class="cards cards-3">
+      <div class="card"><div class="card-icon">◆</div><h3>Shared + atomic experts</h3><p>One shared expert models common dynamics; four atomic experts — VGM, VLA, WM, IDM — each own one predictive role and are reused by every interface that needs it.</p></div>
+      <div class="card"><div class="card-icon">⇄</div><h3>CATR routing</h3><p>Capability-Aligned Token Routing sends video and action target tokens to their own eligible experts and learns mixture weights within each set.</p></div>
+      <div class="card"><div class="card-icon">◎</div><h3>PAIR at deployment</h3><p>A plug-in router picks the interface for every action chunk — fast action paths for reaching, video-aware paths for contact — with the backbone frozen.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ METHOD ============ -->
+<section id="method" class="section section-alt">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Method</div>
+      <h2>Five interfaces. Four atomic capabilities. One backbone.</h2>
+      <p class="lead">Each interface is defined by a video–action visibility mask. Pick one to see which experts it activates and what its tokens can attend to during training and at deployment.</p>
+    </div>
+
+    <div class="explorer">
+      <div class="seg" id="iface-tabs" role="tablist"></div>
+      <div class="explorer-body">
+        <div class="explorer-info">
+          <div class="explorer-role" id="ex-role"></div>
+          <h3 id="ex-name"></h3>
+          <p id="ex-desc"></p>
+          <div class="kv"><span>Atomic capabilities</span><div id="ex-caps" class="chips"></div></div>
+          <div class="kv"><span>Experts · training</span><div id="ex-train" class="chips"></div></div>
+          <div class="kv"><span>Experts · inference</span><div id="ex-infer" class="chips"></div></div>
+          <div class="kv"><span>Deployment</span><div id="ex-deploy" class="mono"></div></div>
+        </div>
+        <div class="explorer-masks">
+          <div class="mask-block"><div class="mask-title">Training mask</div><div id="mask-train" class="mask"></div></div>
+          <div class="mask-block"><div class="mask-title">Inference mask</div><div id="mask-infer" class="mask"></div></div>
+          <div class="mask-legend"><span><i class="lg lg-v"></i>video query</span><span><i class="lg lg-a"></i>action query</span><span><i class="lg lg-0"></i>blocked</span><span class="muted">row = query · column = key · f₀ observed frame</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="caps-grid">
+      <div class="cap"><b>VGM</b><span>action-free video prediction</span></div>
+      <div class="cap"><b>VLA</b><span>direct action generation</span></div>
+      <div class="cap"><b>WM</b><span>action-conditioned video prediction</span></div>
+      <div class="cap"><b>IDM</b><span>video-conditioned action generation</span></div>
+    </div>
+
+    <figure class="figure figure-lg">
+      <img src="assets/fig/framework.svg" alt="UniW(A)M architecture" loading="lazy">
+      <figcaption><b>Architecture.</b> (a) Stage I — unified learning: five interfaces share a diffusion Transformer whose FFN layers are replaced by a CATR mixture of one shared and four atomic experts. (b) Stage II — PAIR adaptation: with the backbone frozen, PAIR learns interface selection from offline MAE-based supervision.</figcaption>
+    </figure>
+    <figure class="figure">
+      <img src="assets/fig/fig3.svg" alt="Expert activation during training and inference" loading="lazy">
+      <figcaption><b>Expert activation.</b> Shared experts serve every interface. Action-Centric-WAM drops WM at inference; Action-Only-WAM keeps VGM only for the conditioning frame.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ REAL WORLD ============ -->
+<section id="real-world" class="section">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Real-world manipulation</div>
+      <h2>Every interface beats the strongest baseline.</h2>
+      <p class="lead">Three dual-arm tasks on an AgileX platform: deformable cloth folding, contact-rich box folding and long-horizon tabletop cleaning. 20 trials per task.</p>
+    </div>
+
+    <div class="tasks">
+      <div class="task"><div class="task-img"><img src="assets/img/task_clothes_a.webp" alt="Folding clothes" loading="lazy"></div><div class="task-meta"><span class="tag">Deformable</span><h3>Folding Clothes</h3><p>605 episodes · 28.8 h</p></div></div>
+      <div class="task"><div class="task-img"><img src="assets/img/task_box_a.webp" alt="Folding box" loading="lazy"></div><div class="task-meta"><span class="tag">Contact-rich</span><h3>Folding Box</h3><p>1,217 episodes · 16.4 h</p></div></div>
+      <div class="task"><div class="task-img"><img src="assets/img/task_table_b.webp" alt="Tabletop cleaning" loading="lazy"></div><div class="task-meta"><span class="tag">Long-horizon</span><h3>Tabletop Cleaning</h3><p>2,426 episodes · 14.2 h</p></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>Success rate (%)</h3><p class="muted">Baselines in grey; UniW(A)M interfaces in color.</p></div>
+        <div class="seg seg-sm" id="rw-tabs"></div>
+      </div>
+      <div class="chart-box h-380"><canvas id="chart-real"></canvas></div>
+    </div>
+
+    <div id="videos" class="subhead">
+      <h3>Real-world tasks in motion</h3>
+      <p class="muted">Head-camera episodes from our dual-arm dataset and OOD test scenes. One garment, box or table per clip; garments start laid flat.</p>
+    </div>
+    <div class="seg" id="vid-tabs">
+      <button class="on" data-t="clothes">Folding Clothes</button><button data-t="box">Folding Box</button><button data-t="table">Tabletop Cleaning</button>
+    </div>
+    <div class="vid-panes">
+      <!-- one pane per task; generated by JS from the same template (see main.js > buildRealVideos) -->
+      <div id="real-video-panes"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SIMULATION ============ -->
+<section id="simulation" class="section section-alt">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Simulation benchmarks</div>
+      <h2>Strong in simulation, robust to scene shift.</h2>
+      <p class="lead">Trained only on clean RoboTwin 2.0 scenes, UniW(A)M reaches 66.6% on randomized scenes — 20.6 points above the strongest listed baseline.</p>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><div><h3>RoboTwin 2.0 · 50 tasks</h3><p class="muted">Clean-only training.</p></div><div class="seg seg-sm" id="rt-tabs"><button class="on" data-k="c2r">Clean → Randomized</button><button data-k="c2c">Clean → Clean</button></div></div>
+        <div class="chart-box h-320"><canvas id="chart-robotwin"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h3>LIBERO</h3><p class="muted">Success rate (%) · best in bold, second underlined.</p></div></div>
+        <div class="table-wrap"><table class="tbl" id="tbl-libero"></table></div>
+      </div>
+    </div>
+
+    <div class="subhead"><h3>RoboTwin 2.0 tasks</h3><p class="muted">Twelve of the 50 dual-arm tasks, shown with clean-scene episodes from the benchmark data.</p></div>
+    <div class="vgrid vgrid-4" id="robotwin-videos"></div>
+    <div class="subhead"><h3>LIBERO tasks</h3><p class="muted">Two tasks from each suite.</p></div>
+    <div class="vgrid vgrid-4" id="libero-videos"></div>
+  </div>
+</section>
+
+<!-- ============ WORLD MODEL ============ -->
+<section id="world-model" class="section">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">World modeling · WorldArena</div>
+      <h2>The same model is also the best world model here.</h2>
+      <p class="lead">In AC-WM mode, UniW(A)M predicts future video from given actions. It achieves the highest EWMScore-P on all three tasks against Cosmos-Predict 2.5 and Ctrl-World.</p>
+    </div>
+    <div class="grid-2 grid-2-wide">
+      <div class="panel">
+        <div class="panel-head"><div><h3>Action-driven and interaction metrics</h3><p class="muted">0–100 scale, higher is better.</p></div><div class="seg seg-sm" id="wa-tabs"></div></div>
+        <div class="chart-box h-380"><canvas id="chart-wa"></canvas></div>
+      </div>
+      <div class="panel ewm">
+        <div class="panel-head"><div><h3>EWMScore-P</h3><p class="muted">Aggregate score per task.</p></div></div>
+        <div id="ewm-list"></div>
+      </div>
+    </div>
+
+    <div class="subhead"><h3>Action-conditioned future prediction</h3><p class="muted">Given the same action sequence, UniW(A)M keeps garments, cardboard edges and bottle labels consistent; red circles mark baseline artifacts.</p></div>
+    <div class="seg" id="qual-tabs">
+      <button class="on" data-img="ac-wm-fold-shirt" data-v="clothes">Folding Clothes</button><button data-img="ac-wm-fold-box" data-v="box">Folding Box</button><button data-img="ac-wm-clean-table" data-v="table">Tabletop Cleaning</button>
+    </div>
+    <figure class="figure figure-flat narrow"><img id="qual-img" src="assets/fig/ac-wm-fold-shirt.svg" alt="Qualitative world-model comparison" loading="lazy"></figure>
+  </div>
+</section>
+
+<!-- ============ PAIR ============ -->
+<section id="pair" class="section section-alt">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">PAIR · Plug-in Adaptive Interface Router</div>
+      <h2>Choose the right interface for every chunk.</h2>
+      <p class="lead">The jointly trained interfaces trade speed for foresight. PAIR is a lightweight classifier on frozen UniW(A)M features that picks one interface per action chunk, trained from 2,000 target-domain chunks per task.</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><div><h3>Out-of-distribution success (%)</h3><p class="muted">Unseen garments, box types and cluttered backgrounds.</p></div><div class="seg seg-sm" id="ood-tabs"></div></div>
+        <div class="chart-box h-320"><canvas id="chart-ood"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h3>Which interface does PAIR pick?</h3><p class="muted">Selection share by execution phase.</p></div><div class="seg seg-sm" id="sel-tabs"></div></div>
+        <div class="chart-box h-320"><canvas id="chart-sel"></canvas></div>
+      </div>
+    </div>
+    <p class="callout">Fast action pathways (Action-Centric, Action-Only) take <b>60–75%</b> of choices while <b>reaching</b>; video-aware pathways (Joint, IDM) take <b>60–70%</b> during <b>contact</b> and <b>70–90%</b> during <b>core manipulation</b>.</p>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><div><h3>Success vs. completion time</h3><p class="muted">OOD average; time over successful trials.</p></div></div>
+        <div class="chart-box h-320"><canvas id="chart-pareto"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h3>Inference latency per step</h3><p class="muted">Full chunk time ÷ 16 denoising steps (ms).</p></div></div>
+        <div class="chart-box h-320"><canvas id="chart-latency"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div><h3>Routing vs. heuristics and LoRA</h3><p class="muted">Folding Clothes, OOD success (%). LoRA adapts one fixed interface on the same target-domain chunks.</p></div></div>
+      <div class="table-wrap"><table class="tbl" id="tbl-adapt"></table></div>
+    </div>
+
+    <figure class="figure narrow">
+      <img src="assets/fig/router_vs.webp" alt="Critical-operation case study" loading="lazy">
+      <figcaption><b>Why switch at chunk boundaries?</b> Successful (top) and failed (bottom) critical operations in each task. Failures are local execution errors — a missed grasp edge, a flap pushed the wrong way — that a better-suited interface avoids.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ ABLATIONS ============ -->
+<section id="analysis" class="section">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Inside UniW(A)M</div>
+      <h2>Training together makes every interface stronger.</h2>
+      <p class="lead">The interfaces share one set of dynamics, and each expert takes on a clear role. All results below use the same data and total training budget.</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><div><h3>More interfaces, stronger policies</h3><p class="muted">Folding Clothes. Interfaces join training one at a time.</p></div></div>
+        <div class="chart-box h-320"><canvas id="chart-prog"></canvas></div>
+        <p class="note">Joint-WAM rises from 50% to 90% as more interfaces train together, even with fewer updates per interface.</p>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h3>Capability-aligned routing</h3><p class="muted">Average success over three tasks (%).</p></div></div>
+        <div class="chart-box h-320"><canvas id="chart-abl"></canvas></div>
+        <p class="note">Sending video and action tokens to their own experts (CATR) takes Action-Centric from 10.0% to 81.7%, and AC-WM co-training adds another 15–43 points.</p>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><div><h3>Every expert has a role</h3><p class="muted">Folding Clothes success (%) with one expert left out, 20K matched steps.</p></div></div>
+        <div class="chart-box h-320"><canvas id="chart-removal"></canvas></div>
+        <p class="note">Action experts carry 55–70 points of success and world-prediction experts 20–45. The WM expert also carries AC-WM: without it, EWMScore-P drops from 61.7 to 31.2.</p>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h3>How the gate splits the work</h3><p class="muted">Gate-weighted utilization, shared vs. atomic (%).</p></div></div>
+        <div class="chart-box h-320"><canvas id="chart-util"></canvas></div>
+        <p class="note">Action tokens lean more on their atomic expert than video tokens do in every WAM.</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div><h3>Mixture of experts vs. a dense backbone</h3><p class="muted">Folding Clothes success (%). A dense DiT of similar size (16.4B vs 16.2B), or one with matched initialization, stays behind UniW(A)M.</p></div></div>
+      <div class="table-wrap"><table class="tbl" id="tbl-dense"></table></div>
+    </div>
+
+    <div class="subhead"><h3>Qualitative rollouts by interface</h3><p class="muted">Frames from the four WAM interfaces on each real-world task.</p></div>
+    <div class="seg" id="seq-tabs">
+      <button class="on" data-img="real_world_folding_clothes">Folding Clothes</button><button data-img="real_world_folding_box">Folding Box</button><button data-img="real_world_tabletop_cleaning">Tabletop Cleaning</button>
+    </div>
+    <figure class="figure figure-flat narrow"><img id="seq-img" src="assets/fig/real_world_folding_clothes.svg" alt="Real-world sequences" loading="lazy"></figure>
+  </div>
+</section>
+
+<!-- ============ BIBTEX ============ -->
+<section id="bibtex" class="section section-alt">
+  <div class="wrap narrow-wrap">
+    <div class="sec-head"><div class="eyebrow">Citation</div><h2>BibTeX</h2></div>
+    <div class="bib">
+      <button class="copy" id="copy-bib">Copy</button>
+<pre id="bib-text">@article{xu2026uniwam,
+  title   = {UniW(A)M: A Unified Mixture-of-Experts Framework for
+             World and World-Action Models},
+  author  = {Xu, Jingbo and Fang, Jianjie and Li, Zhuohang and Song, Zihao and
+             Wang, Zhaolu and Liu, Xvyuan and Zhang, Xin and Su, Haisheng and
+             Tang, Yinzhou and Gao, Chen and Wu, Wei and Li, Yong},
+  journal = {arXiv preprint arXiv:2610.18697},
+  year    = {2026}
+}</pre>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <p><img src="assets/img/cube.png" alt="" class="foot-logo"> UniW(A)M · Tsinghua University · Zhongguancun Academy · East China Normal University · Manifold AI</p>
+  </div>
+</footer>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/videos.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
