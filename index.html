@@ -69,7 +69,7 @@
 <!-- ============ KEY NUMBERS ============ -->
 <section class="stats-band">
   <div class="wrap stats">
-    <div class="stat"><div class="stat-num" data-count="88.3">88.3<span>%</span></div><div class="stat-label">Real-world average success<br><em>vs 76.7% strongest baseline</em></div></div>
+    <div class="stat"><div class="stat-num" data-count="88.3">88.3<span>%</span></div><div class="stat-label">Real-world average success (IDM-WAM)<br><em>vs 76.7% strongest baseline</em></div></div>
     <div class="stat"><div class="stat-num" data-count="97.5">97.5<span>%</span></div><div class="stat-label">LIBERO average success<br><em>99.2% on Spatial</em></div></div>
     <div class="stat"><div class="stat-num" data-count="66.6">66.6<span>%</span></div><div class="stat-label">RoboTwin 2.0 clean → randomized<br><em>+20.6 pts over π0.5</em></div></div>
     <div class="stat"><div class="stat-num" data-count="76.7">76.7<span>%</span></div><div class="stat-label">OOD success with PAIR<br><em>up from 63.3%, backbone frozen</em></div></div>
@@ -149,7 +149,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="eyebrow">Real-world manipulation</div>
-      <h2>Every interface beats the strongest baseline.</h2>
+      <h2>Every interface beats the strongest baseline on average.</h2>
       <p class="lead">Three dual-arm tasks on an AgileX platform: deformable cloth folding, contact-rich box folding and long-horizon tabletop cleaning. 20 trials per task.</p>
     </div>
 
@@ -296,7 +296,7 @@
       <div class="panel">
         <div class="panel-head"><div><h3>Capability-aligned routing</h3><p class="muted">Average success over three tasks (%).</p></div></div>
         <div class="chart-box h-320"><canvas id="chart-abl"></canvas></div>
-        <p class="note">Sending video and action tokens to their own experts (CATR) takes Action-Centric from 10.0% to 81.7%, and AC-WM co-training adds another 15–43 points.</p>
+        <p class="note">With all five paradigms co-trained, CATR lifts Action-Centric from 10.0% (sample-level routing) to 81.7%. Separately, removing AC-WM co-training lowers the four interfaces by 15.0–43.3 points.</p>
       </div>
     </div>
 
